@@ -45,7 +45,7 @@ def run_simulated_noisy_office_ocr(
     results: list[dict[str, Any]] = []
     for idx, image_path in enumerate(image_paths, 1):
         print(f"[{idx}/{len(image_paths)}] OCR {image_path.relative_to(paths.root)}", flush=True)
-        raw = ocr.ocr(str(image_path), det=True, rec=True, cls=True)
+        raw = run_paddle_ocr(ocr, image_path)
         lines = sort_ocr_lines(parse_paddle_result(raw))
         text = reconstruct_text(lines)
         item = {
@@ -76,6 +76,7 @@ def run_simulated_noisy_office_ocr(
 
 def _build_paddle_ocr(paddle_ocr_cls: Any, checkpoint_dir: Path, use_gpu: bool) -> Any:
     common = {"lang": "en", "use_angle_cls": True}
+    rec_model_name = _read_exported_rec_model_name(checkpoint_dir)
     attempts = [
         {
             **common,
@@ -86,9 +87,11 @@ def _build_paddle_ocr(paddle_ocr_cls: Any, checkpoint_dir: Path, use_gpu: bool) 
             "show_log": False,
         },
         {
-            "use_textline_orientation": True,
-            "text_recognition_model_dir": str(checkpoint_dir),
+            "ocr_version": "PP-OCRv3",
             "lang": "en",
+            "use_textline_orientation": True,
+            "text_recognition_model_name": rec_model_name,
+            "text_recognition_model_dir": str(checkpoint_dir),
         },
     ]
     last_error: Exception | None = None
@@ -98,6 +101,28 @@ def _build_paddle_ocr(paddle_ocr_cls: Any, checkpoint_dir: Path, use_gpu: bool) 
         except Exception as exc:
             last_error = exc
     raise RuntimeError(f"Could not initialize PaddleOCR with custom recognizer: {last_error}") from last_error
+
+
+def run_paddle_ocr(ocr: Any, image_path: Path) -> Any:
+    try:
+        return ocr.predict(str(image_path), use_textline_orientation=True)
+    except AttributeError:
+        return ocr.ocr(str(image_path), det=True, rec=True, cls=True)
+    except TypeError as exc:
+        if "unexpected keyword argument" not in str(exc):
+            raise
+        return ocr.ocr(str(image_path))
+
+
+def _read_exported_rec_model_name(checkpoint_dir: Path) -> str:
+    inference_yml = checkpoint_dir / "inference.yml"
+    if not inference_yml.exists():
+        return "en_PP-OCRv3_mobile_rec"
+    for line in inference_yml.read_text(encoding="utf-8", errors="ignore").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("model_name:"):
+            return stripped.split(":", 1)[1].strip() or "en_PP-OCRv3_mobile_rec"
+    return "en_PP-OCRv3_mobile_rec"
 
 
 def parse_paddle_result(raw: Any) -> list[OCRLine]:
@@ -202,4 +227,3 @@ def _as_box(value: Any) -> list[list[float]]:
         if isinstance(point, (list, tuple)) and len(point) >= 2:
             points.append([float(point[0]), float(point[1])])
     return points
-

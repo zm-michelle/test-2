@@ -47,6 +47,7 @@ def train_recognizer(paths: Paths, cfg: TrainingConfig, sroie_dir: Path | None =
         f"Global.save_model_dir={save_dir}",
         f"Global.pretrained_model={pretrained}",
         f"Global.use_gpu={str(cfg.device == 'gpu')}",
+        f"Global.eval_batch_step=[0,{cfg.eval_every_steps}]",
         f"Optimizer.lr.warmup_epoch={cfg.warmup_epochs}",
         f"Train.dataset.data_dir={prepared.data_dir}",
         f"Train.dataset.label_file_list=[{prepared.train_label_file}]",
@@ -61,10 +62,12 @@ def train_recognizer(paths: Paths, cfg: TrainingConfig, sroie_dir: Path | None =
     subprocess.run(cmd, cwd=str(repo), env=env_with_paddle_flags(cfg.device), check=True)
 
     checkpoint_prefix = save_dir / "best_accuracy"
+    if not checkpoint_prefix.with_suffix(".pdparams").exists() and (save_dir / "latest.pdparams").exists():
+        checkpoint_prefix = save_dir / "latest"
     if not checkpoint_prefix.with_suffix(".pdparams").exists():
         raise RuntimeError(
-            "Training finished without producing checkpoints/rec/best_accuracy.pdparams. "
-            "Check PaddleOCR logs above; common causes are an empty dataset after filtering or a batch size larger than the usable sample count."
+            "Training finished without producing checkpoints/rec/best_accuracy.pdparams or checkpoints/rec/latest.pdparams. "
+            "Check PaddleOCR logs above for the first training failure."
         )
     inference_dir = paths.checkpoints_dir / "inference_rec"
     export_recognizer(checkpoint_prefix, inference_dir, paths)

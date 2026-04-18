@@ -22,6 +22,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--warmup_epochs", type=float, default=1.0, help="Learning-rate warmup epochs for PaddleOCR training")
+    parser.add_argument("--eval_every_steps", type=int, default=200, help="Validation/checkpoint frequency during training")
     parser.add_argument("--device", choices=["cpu", "gpu"], default="cpu")
     parser.add_argument("--freeze_backbone", action="store_true")
     parser.add_argument("--output_dir", default=None)
@@ -38,6 +39,7 @@ def main() -> None:
         epochs=args.epochs,
         batch_size=args.batch_size,
         warmup_epochs=args.warmup_epochs,
+        eval_every_steps=args.eval_every_steps,
         device=args.device,
         freeze_backbone=args.freeze_backbone,
         limit=args.limit,
