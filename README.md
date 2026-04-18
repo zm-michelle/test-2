@@ -21,6 +21,12 @@ python3 main.py --benchmark --checkpoint checkpoints/inference_rec
 python3 main.py --ocr_simulated_noisy_office --checkpoint checkpoints/inference_rec
 ```
 
+For faster CPU feedback, lower warmup:
+
+```bash
+python3 main.py --train --epochs 3 --batch_size 16 --warmup_epochs 0.25
+```
+
 Useful smoke-test option:
 
 ```bash

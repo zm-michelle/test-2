@@ -47,6 +47,7 @@ def train_recognizer(paths: Paths, cfg: TrainingConfig, sroie_dir: Path | None =
         f"Global.save_model_dir={save_dir}",
         f"Global.pretrained_model={pretrained}",
         f"Global.use_gpu={str(cfg.device == 'gpu')}",
+        f"Optimizer.lr.warmup_epoch={cfg.warmup_epochs}",
         f"Train.dataset.data_dir={prepared.data_dir}",
         f"Train.dataset.label_file_list=[{prepared.train_label_file}]",
         f"Train.loader.batch_size_per_card={cfg.batch_size}",

@@ -24,6 +24,7 @@ class Paths:
 class TrainingConfig:
     epochs: int = 10
     batch_size: int = 64
+    warmup_epochs: float = 1.0
     device: str = "cpu"
     freeze_backbone: bool = False
     limit: int | None = None
